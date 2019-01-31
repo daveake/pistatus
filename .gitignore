@@ -11,7 +11,7 @@
 *.ilk
 *.map
 *.exp
-udp
+pistatus
 
 # Precompiled Headers
 *.gch

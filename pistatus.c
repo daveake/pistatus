@@ -54,7 +54,7 @@ void UDPSend(char *message, int port)
 
 		if (rc<0)
 		{
-			printf("%s: cannot send data %s to port %d \n", message, port);
+			printf("Cannot send data %s to port %d \n", message, port);
 			close(sd);
 			return;
 		}
