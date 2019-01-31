@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
+#include <ifaddrs.h>
 
 void UDPSend(char *message, int port)
 { 
@@ -110,6 +111,44 @@ int GetCPULoad(void)
 	return (int)(load * 100);
 }
 
+char *GetIPAddress(void)
+{
+	static char IPAddress[100];
+    struct ifaddrs *ifap, *ifa;
+    struct sockaddr_in *sa;
+    char *addr;
+	
+	IPAddress[0] = '\0';
+
+    if (getifaddrs(&ifap) == 0)
+	{
+		for (ifa = ifap; ifa; ifa = ifa->ifa_next)
+		{
+			if (ifa->ifa_addr != NULL)
+			{
+				// Family is known (which it isn't for a VPN)
+				if (ifa->ifa_addr->sa_family==AF_INET)
+				{
+					// Exclude docker bridges
+					if (strstr(ifa->ifa_name, "docker") == NULL)
+					{
+						sa = (struct sockaddr_in *) ifa->ifa_addr;
+						addr = inet_ntoa(sa->sin_addr);
+						if (strcmp(addr, "127.0.0.1") != 0)
+						{
+							strcpy(IPAddress, addr);
+						}
+					}
+				}
+			}
+        }
+    }
+
+    freeifaddrs(ifap);
+	
+	return IPAddress;
+}
+
 void main(int argc, char *argv[])
 {
 	int Port;
@@ -119,7 +158,7 @@ void main(int argc, char *argv[])
 	if (argc > 1)
 	{
 		Port = atoi(argv[1]);
-		sprintf(Message, "PI:SRC=%s,TEMP=%.1f,CPU=%d\n", Hostname(), Temperature(), GetCPULoad());
+		sprintf(Message, "PI:SRC=%s,IP=%s,TEMP=%.1f,CPU=%d\n", Hostname(), GetIPAddress(), Temperature(), GetCPULoad());
 		printf("Sending to port %d: %s\n", Port, Message);
 		UDPSend(Message, Port);
 	}
