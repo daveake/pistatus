@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <fcntl.h>
 
 void UDPSend(char *message, int port)
 { 
@@ -49,7 +50,7 @@ void UDPSend(char *message, int port)
 		}
 
 		// send data
-		rc = sendto(sd, message, strlen(message)+1, 0, (struct sockaddr *) &remoteServAddr, sizeof(remoteServAddr));
+		rc = sendto(sd, message, strlen(message), 0, (struct sockaddr *) &remoteServAddr, sizeof(remoteServAddr));
 
 		if (rc<0)
 		{
@@ -91,6 +92,24 @@ float Temperature(void)
 	return 0;
 }
 
+int GetCPULoad(void)
+{
+	int FileHandler;
+	char FileBuffer[1024];
+	float load;
+
+	FileHandler = open("/proc/loadavg", O_RDONLY);
+	if (FileHandler < 0)
+	{
+		return -1;
+	}
+
+	read(FileHandler, FileBuffer, sizeof(FileBuffer) - 1);
+	sscanf(FileBuffer, "%f", &load);
+	close(FileHandler);
+	return (int)(load * 100);
+}
+
 void main(int argc, char *argv[])
 {
 	int Port;
@@ -100,7 +119,7 @@ void main(int argc, char *argv[])
 	if (argc > 1)
 	{
 		Port = atoi(argv[1]);
-		sprintf(Message, "PI:SRC=%s,TEMP=%.1f", Hostname(), Temperature());
+		sprintf(Message, "PI:SRC=%s,TEMP=%.1f,CPU=%d\n", Hostname(), Temperature(), GetCPULoad());
 		printf("Sending to port %d: %s\n", Port, Message);
 		UDPSend(Message, Port);
 	}
